@@ -1,0 +1,44 @@
+.addgradiant {
+    background: linear-gradient(to right, purple, pink);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.addgradiantsign {
+    background: linear-gradient(to right, white, #5b21b6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.tilttheimage {
+  will-change: transform;
+  transition: all 1500ms cubic-bezier(0.03, 0.98, 0.52, 0.99) 0s;
+  transform: perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1);
+}
+
+.tilttheimage:hover {
+  transform: perspective(1000px) rotateX(10deg) rotateY(10deg) scale3d(1, 1, 1);
+}
+
+.light-on-hover {
+  transition: box-shadow 0.3s ease-in-out;
+}
+
+.light-on-hover:hover {
+  box-shadow: 0 0 10px #5b21b6;
+}
+
+
+.ai-assistant {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  /* Other styles */
+}
+
+.chat-interface {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  /* Other styles */
+}
