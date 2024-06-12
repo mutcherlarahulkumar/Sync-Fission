@@ -3,7 +3,7 @@ pipeline{
   stages{
     stage('print'){
       steps{
-          java -version
+          echo "hello" 
       }
     }
   }
