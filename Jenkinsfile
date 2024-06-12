@@ -3,7 +3,7 @@ pipeline{
   stages{
     stage('print'){
       steps{
-       echo "rahul" 
+       cat ./frontend/package.json
       }
     }
   }
