@@ -4,7 +4,7 @@ pipeline{
     stage('print'){
       steps{
         sh 'chmod +x ./frontend/package.json'
-       cat ./frontend/package.json
+       sh 'cat ./frontend/package.json'
       }
     }
   }
