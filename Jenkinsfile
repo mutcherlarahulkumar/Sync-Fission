@@ -1,7 +1,7 @@
 pipeline{
   agent any
   stages{
-    stage('print'){
+    step('print'){
       echo "rahul"
     }
   }
