@@ -1,101 +1,111 @@
 import { useLocation } from "react-router-dom"
-import DiscussionCard from "../components/DiscussionCard";
-import { useEffect,useState } from "react";
-import axios from "axios";
-import { ToastContainer, toast } from "react-toastify";
-import TutorReplyCard from "../components/TutorReplyCard";
-
+import DiscussionCard from "../components/DiscussionCard"
+import { useEffect, useState } from "react"
+import axios from "axios"
+import { ToastContainer, toast } from "react-toastify"
+import TutorReplyCard from "../components/TutorReplyCard"
+import Spinner from "../components/Spinner"
+import { API_URL, getAuthConfig } from '../api'
 
 export default function DoubtDiscussionPageTutor() {
     const location = useLocation();
-    const class_id = location.state.class_id;
-    const doubt_id = location.state.doubt_id;
-    const config = {
-        headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-    };
+    const class_id = location.state?.class_id;
+    const doubt_id = location.state?.doubt_id;
+
     const [doubt, setDoubt] = useState({});
     const [student, setStudent] = useState('');
-    const [comments, setComments] = useState('');
+    const [replyText, setReplyText] = useState('');
     const [discussions, setDiscussions] = useState([]);
     const [replies, setReplies] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    function fetchData() {
+        const config = getAuthConfig();
+        Promise.all([
+            axios.get(`${API_URL}/tutor/class/${class_id}/doubt/${doubt_id}`, config),
+            axios.get(`${API_URL}/tutor/class/${class_id}/doubt/${doubt_id}/discussions`, config),
+            axios.get(`${API_URL}/tutor/class/${class_id}/doubt/${doubt_id}/replies`, config),
+        ])
+            .then(([doubtRes, discussionsRes, repliesRes]) => {
+                setDoubt(doubtRes.data.doubt || {});
+                const s = doubtRes.data.student;
+                if (s) setStudent(s.first_name + " " + s.last_name);
+                setDiscussions(discussionsRes.data.discussions || []);
+                setReplies(repliesRes.data.replies || []);
+            })
+            .catch(console.error)
+            .finally(() => setLoading(false));
+    }
+
     useEffect(() => {
-        axios.get(`http://localhost:3000/api/v1/tutor/class/${class_id}/doubt/${doubt_id}`, config)
-        .then((response) => {
-            setDoubt(response.data.doubt);
-            setStudent(response.data.student.rows[0].first_name+" " + response.data.student.rows[0].last_name);
-        })
-        .catch((error) => {
-            console.log(error);
-        });
-
-        axios.get(`http://localhost:3000/api/v1/tutor/class/${class_id}/doubt/${doubt_id}/discussions`, config)
-        .then((response) => {
-            setDiscussions(response.data.discussions);
-        })
-        .catch((error) => {
-            console.log(error);
-        });
-
-        axios.get(`http://localhost:3000/api/v1/tutor/class/${class_id}/doubt/${doubt_id}/replies`, config)
-        .then((response) => {
-            setReplies(response.data.replies);
-        })
-        .catch((error) => {
-            console.log(error);
-        });
+        fetchData();
     }, [class_id, doubt_id]);
 
-    const replyData = {
-        reply: comments
-    }
-
-    async function submitReply() {
-        if(comments === '') {
-            toast.error('Comment cannot be empty');
+    function submitReply() {
+        if (!replyText.trim()) {
+            toast.error('Reply cannot be empty');
             return;
         }
-        await axios.post(`http://localhost:3000/api/v1/tutor/class/${class_id}/doubt/${doubt_id}/reply`, replyData, config)
-        .then((response) => {
-            toast.success('Reply Submitted Successfully');
-            console.log(response);
-        })
-        .catch((error) => {
-            toast.error('Failed to submit reply');
-        });
+        const config = getAuthConfig();
+        axios.post(`${API_URL}/tutor/class/${class_id}/doubt/${doubt_id}/reply`, { reply: replyText }, config)
+            .then(() => {
+                toast.success('Reply submitted successfully');
+                setReplyText('');
+                fetchData();
+            })
+            .catch(() => toast.error('Failed to submit reply'));
     }
 
+    if (loading) return <Spinner />;
 
     return (
-        <div className="text-white mx-auto py-8 px-4 md:px-6 bg-[#03040e]">
-        <ToastContainer />
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold mb-2">{doubt.title}</h1>
-        <p className="text-gray-500 ">
-          {doubt.description}.
-        </p>
-        <p>Doubt Created by <span className="text-blue-800">{student.toLowerCase()}</span></p>
-      </div>
-      {replies.map((reply) => (
-            <TutorReplyCard key={reply.id} reply={reply.reply} />
-        ))}
-      <div className="space-y-4">
-      {discussions && discussions.map((discussion) => (
-            <DiscussionCard key={discussion.id} discussion={discussion} />
-        ))}
+        <div className="text-white mx-auto py-8 px-4 md:px-6 bg-[#03040e] min-h-screen">
+            <ToastContainer />
+            <div className="max-w-3xl mx-auto">
+                <div className="mb-6">
+                    <h1 className="text-2xl font-bold mb-2">{doubt.title}</h1>
+                    <p className="text-gray-400">{doubt.description}</p>
+                    <p className="text-sm text-gray-500 mt-1">
+                        Posted by <span className="text-blue-400">{student}</span>
+                    </p>
+                </div>
 
-      </div>
-      <div className="mt-8">
-        <h2 className="text-lg font-medium mb-2">Solve the doubt</h2>
-        <div className="flex items-center">
-          <textarea
-            className="flex-1 rounded-l-lg border-r-0 border-gray-200 bg-gray-800 p-1 rounded-md   "
-            placeholder="Write your comment here..." onChange={(e) => setComments(e.target.value)}
-          />
-          <button className="rounded-r-lg" onClick={submitReply}>Submit</button>
+                {replies.length > 0 && (
+                    <div className="mb-6">
+                        <h2 className="text-lg font-semibold mb-3">Your Previous Replies</h2>
+                        {replies.map((reply) => (
+                            <TutorReplyCard key={reply.id} reply={reply.reply} />
+                        ))}
+                    </div>
+                )}
+
+                <div className="space-y-3 mb-6">
+                    <h2 className="text-lg font-semibold">Student Discussion</h2>
+                    {discussions.length === 0 ? (
+                        <p className="text-gray-400 text-sm">No student comments yet.</p>
+                    ) : (
+                        discussions.map((d) => <DiscussionCard key={d.id} discussion={d} />)
+                    )}
+                </div>
+
+                <div className="mt-6">
+                    <h2 className="text-base font-medium mb-2">Post Your Answer</h2>
+                    <div className="flex gap-2">
+                        <textarea
+                            className="flex-1 rounded-lg bg-gray-800 border border-gray-600 p-3 text-sm text-white focus:outline-none focus:border-blue-500 resize-none h-20"
+                            placeholder="Write your answer here..."
+                            value={replyText}
+                            onChange={(e) => setReplyText(e.target.value)}
+                        />
+                        <button
+                            className="bg-green-700 hover:bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium self-start transition-colors"
+                            onClick={submitReply}
+                        >
+                            Submit
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-    )
+    );
 }

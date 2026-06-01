@@ -1,118 +1,120 @@
-import Resource from "../components/Resource";
-import { useState } from "react";
-import axios from "axios";
-import { useLocation } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
-import { ToastContainer, toast } from "react-toastify";
-import { useEffect } from "react";
+import Resource from "../components/Resource"
+import { useState, useEffect } from "react"
+import axios from "axios"
+import { useLocation } from 'react-router-dom'
+import { ToastContainer, toast } from "react-toastify"
+import Spinner from "../components/Spinner"
+import { API_URL, getAuthConfig } from '../api'
 
-export default function TutorResources(){
-  const navigate = useNavigate();
-  const location = useLocation();
+export default function TutorResources() {
+    const location = useLocation();
+    const class_id = (location.state || {}).id;
 
-  const [title, setTitle] = useState('');
-  const [link, setLink] = useState('');
-  const [type, setType] = useState('');
-  const class_id = (location.state || {}).id;
+    const [title, setTitle] = useState('');
+    const [link, setLink] = useState('');
+    const [type, setType] = useState('');
+    const [resources, setResources] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-  const token = localStorage.getItem('token');
-  const config = {
-    headers: { Authorization: `Bearer ${token}` }
-  };
+    function fetchResources() {
+        const config = getAuthConfig();
+        axios.get(`${API_URL}/tutor/class/${class_id}/resources`, config)
+            .then((response) => {
+                setResources(response.data.resources || []);
+            })
+            .catch(console.error)
+            .finally(() => setIsLoading(false));
+    }
 
-  const [resources, setResources] = useState([]);
+    useEffect(() => {
+        fetchResources();
+    }, [class_id]);
 
-  useEffect(() => {
-    axios.get(`http://localhost:3000/api/v1/tutor/class/${class_id}/resources`, config)
-      .then((response) => {
-        setResources(response.data.resources);
-        console.log(response.data);
-      })
-      .catch((error) => {
-        console.log(error);
-      });
-  }
-  , [class_id]);
+    function addResource(e) {
+        e.preventDefault();
+        if (!title || !link) {
+            toast.error('Title and link are required');
+            return;
+        }
+        const config = getAuthConfig();
+        axios.post(`${API_URL}/tutor/class/${class_id}/addresource`, { title, link, type }, config)
+            .then(() => {
+                toast.success('Resource added successfully');
+                setTitle('');
+                setLink('');
+                setType('');
+                fetchResources();
+            })
+            .catch(() => toast.error('Failed to add resource'));
+    }
 
-    return <div>
-    <ToastContainer />
-         <div className="min-h-screen bg-[#03040e] text-white">
-        <div className="container mx-auto py-10 px-4 sm:px-6 lg:px-8">
-          <div className="bg-gray-800 rounded-lg p-6">
-            <h1 className="text-2xl font-bold mb-6">Resources</h1>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h2 className="text-xl font-bold mb-4">Add a Resource</h2>
-                <div className="bg-[#d9e6f7] rounded-lg p-4">
-                  <form className="space-y-4 text-black">
-                    <div>
-                      <label className="text-sm font-medium" htmlFor="title">
-                        Title
-                      </label>
-                      <input type="text" 
-                        className=" text-black w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                        onChange={(e) => setTitle(e.target.value)}
-                        placeholder="Enter the title"
-                      />
+    if (isLoading) return <Spinner />;
+
+    return (
+        <div className="bg-[#03040e] text-white min-h-screen">
+            <ToastContainer />
+            <div className="container mx-auto py-6 px-4">
+                <div className="bg-gray-800 rounded-lg p-6">
+                    <h1 className="text-2xl font-bold mb-6">Resources</h1>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h2 className="text-lg font-bold mb-4">Add a Resource</h2>
+                            <div className="bg-gray-700 rounded-lg p-4">
+                                <form className="space-y-4" onSubmit={addResource}>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Title</label>
+                                        <input
+                                            type="text"
+                                            className="w-full bg-gray-600 border border-gray-500 rounded-md px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                                            value={title}
+                                            onChange={(e) => setTitle(e.target.value)}
+                                            placeholder="Resource title"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Link</label>
+                                        <input
+                                            type="url"
+                                            className="w-full bg-gray-600 border border-gray-500 rounded-md px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                                            value={link}
+                                            onChange={(e) => setLink(e.target.value)}
+                                            placeholder="https://..."
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Type</label>
+                                        <input
+                                            type="text"
+                                            className="w-full bg-gray-600 border border-gray-500 rounded-md px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                                            value={type}
+                                            onChange={(e) => setType(e.target.value)}
+                                            placeholder="e.g. PDF, Video, Article"
+                                        />
+                                    </div>
+                                    <button
+                                        type="submit"
+                                        className="bg-blue-600 hover:bg-blue-500 text-white rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+                                    >
+                                        Add Resource
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                        <div>
+                            <h2 className="text-lg font-bold mb-4">All Resources</h2>
+                            <div className="bg-gray-700 rounded-lg p-4 space-y-3 max-h-[400px] overflow-y-auto">
+                                {resources.length === 0 ? (
+                                    <p className="text-gray-400 text-sm">No resources added yet.</p>
+                                ) : (
+                                    resources.map((resource, index) => (
+                                        <Resource key={index} title={resource.title} link={resource.link} type={resource.type} />
+                                    ))
+                                )}
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium" htmlFor="link">
-                        Link
-                      </label>
-                      <input type="text"
-                        className="w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                        onChange={(e) => setLink(e.target.value)}
-                        placeholder="Enter the link"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium" htmlFor="title">
-                        Type
-                      </label>
-                      <input type="text" 
-                        className=" text-black w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                        onChange={(e) => setType(e.target.value)}
-                        placeholder="Enter the type of resource"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="text-[#8c9bab] text-sm">Added</div>
-                      <button type="submit" className="bg-blue-300 rounded text-white p-1" onClick={(e)=>{
-                        e.preventDefault();
-                        const resourcedata = {
-                          title: title,
-                          link: link,
-                          type: type
-                        }
-                        axios.post(`http://localhost:3000/api/v1/tutor/class/${class_id}/addresource`,resourcedata,config)
-                        .then((response) => {
-                          toast.success('Resource added successfully');
-                        }).catch((error) => {
-                          toast.error('Error adding resource');
-                        });
-                      }}>
-                        Add Resource
-                      </button>
-                    </div>
-                  </form>
                 </div>
-              </div>
-              <div className="col-span-2">
-                <h2 className="text-xl font-bold mb-4">Latest Resources</h2>
-                <div className="bg-[#d9e6f7] rounded-lg p-4 space-y-4 max-h-[300px] overflow-y-auto">
-                {resources.map((resource, index) => (
-                  <Resource 
-                    key={index} 
-                    title={resource.title} 
-                    link={resource.link} 
-                    type={resource.type} 
-                  />
-                ))}
-                </div>
-              </div>
             </div>
-          </div>
         </div>
-    </div>
-    </div>
+    );
 }

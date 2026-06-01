@@ -1,20 +1,18 @@
-export default function Resource({title, link, type}){
-    return <div>
-    <p className="text-black">Title :
-      <a className="text-blue-500 hover:underline" href={link}>
-        {' '+title}
-      </a>
-    </p>
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-[#8c9bab] text-sm">Link : {link}</p>
-        <p className="text-[#8c9bab] text-sm">Type: {type}</p>
-      </div>
-      <button size="sm" type="button" className="text-blue-400" onClick={()=>{
-        window.location.href = link;
-      }}>
-        View
-      </button>
-    </div>
-  </div>
+export default function Resource({ title, link, type }) {
+    return (
+        <div className="flex items-center justify-between border-b border-gray-600 pb-3 last:border-0 last:pb-0">
+            <div>
+                <p className="text-white text-sm font-medium">{title}</p>
+                <p className="text-gray-400 text-xs">{type && `Type: ${type}`}</p>
+            </div>
+            <a
+                href={link}
+                target="_blank"
+                rel="noreferrer"
+                className="text-blue-400 hover:text-blue-300 text-sm font-medium shrink-0 ml-4"
+            >
+                Open ↗
+            </a>
+        </div>
+    );
 }
