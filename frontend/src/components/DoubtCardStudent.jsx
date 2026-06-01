@@ -1,24 +1,21 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
-export default function DoubtCardStudent({title, description, class_id, doubt_id}){
+export default function DoubtCardStudent({ title, description, class_id, doubt_id }) {
     const navigate = useNavigate();
 
-    return <div className="py-2">
-        <div className="text-white text-2xl">Title :
-      <span className="text-blue-500">{title}
-      </span>
-    </div>
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-[#8c9bab] text-lg w-full">Description : {description} </p>
-      </div>
-      <button size="sm" type="button" className="text-blue-400" onClick={()=>{
-        navigate(`/doubt-discussion`, {state: {class_id, doubt_id}});
-      }}>
-        View
-      </button>
-    </div>
-    </div>
+    return (
+        <div className="bg-gray-700 border border-gray-600 rounded-lg p-4 flex justify-between items-start gap-4">
+            <div className="flex-1 min-w-0">
+                <div className="text-white font-medium text-sm mb-1 truncate">{title}</div>
+                <p className="text-gray-400 text-xs line-clamp-2">{description}</p>
+            </div>
+            <button
+                className="bg-blue-600 hover:bg-blue-500 text-white text-xs px-3 py-1.5 rounded-md shrink-0 transition-colors"
+                onClick={() => navigate('/doubt-discussion', { state: { class_id, doubt_id } })}
+            >
+                View
+            </button>
+        </div>
+    );
 }

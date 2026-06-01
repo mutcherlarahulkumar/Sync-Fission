@@ -1,45 +1,55 @@
-import {useState} from "react"
-import axios from "axios";
-import { ToastContainer, toast } from "react-toastify";
-export default function JoinClass() {
+import { useState } from "react"
+import axios from "axios"
+import { ToastContainer, toast } from "react-toastify"
+import { API_URL, getAuthConfig } from '../api'
 
+export default function JoinClass({ onJoined }) {
     const [classcode, setClasscode] = useState('');
-    const token = localStorage.getItem('token');
-        const config = {
-          headers: { Authorization: `Bearer ${token}` }
-        };
-        const postdata = {
-            classcode:classcode
+
+    function joinClass() {
+        if (!classcode.trim()) {
+            toast.error('Please enter a class code');
+            return;
         }
+        const config = getAuthConfig();
+        axios.post(`${API_URL}/student/enroll`, { classcode }, config)
+            .then((res) => {
+                toast.success('Class joined successfully!');
+                setClasscode('');
+                if (onJoined) onJoined();
+            })
+            .catch((err) => {
+                const msg = err.response?.data?.message;
+                if (msg === "Cannot enroll student in class") {
+                    toast.warn("Already enrolled or class does not exist");
+                } else {
+                    toast.error("Invalid class code");
+                }
+            });
+    }
+
     return (
-        <div>
-        <ToastContainer />
-            <div className="text-2xl pb-5 font-semibold text-center">Join Class</div>
-            <div className="flex flex-col gap-4">
+        <div className="w-80">
+            <ToastContainer />
+            <div className="text-xl font-bold mb-5 text-center">Join a Class</div>
+            <div className="space-y-4">
                 <div>
-                    <label htmlFor="class-code" className="text-lg">Enter Class Code</label>
-                    <input type="text" id="class-code" className="bg-gray-800 text-white p-2 rounded-lg border border-white pl-5 ml-4 " onChange={(e)=>{setClasscode(e.target.value)}}/>
+                    <label className="block text-sm font-medium mb-2">Class Code</label>
+                    <input
+                        type="text"
+                        className="w-full bg-gray-700 text-white p-2.5 rounded-lg border border-gray-600 focus:outline-none focus:border-blue-500 text-sm"
+                        placeholder="Paste class code here"
+                        value={classcode}
+                        onChange={(e) => setClasscode(e.target.value)}
+                    />
                 </div>
-                <div>
-                    <button className="bg-blue-500 text-white p-2 rounded-lg" onClick={()=>{
-                        axios.post("http://localhost:3000/api/v1/student/enroll",postdata,config)
-                        .then((res)=>{
-                            if(res.data.message === "Cannot enroll student in class"){
-                                toast.warn("Already Enrolled / No Class Exists");
-                            }
-                            else{
-                            toast.success("Class Joined Successfully");
-
-                            }
-                        })
-                        .catch((err)=>{
-                            console.log(err);
-                            toast.error("Invalid Class Code");
-                        })
-
-                    }}>Join Class</button>
-                </div>
+                <button
+                    className="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-lg text-sm font-medium transition-colors"
+                    onClick={joinClass}
+                >
+                    Join Class
+                </button>
             </div>
         </div>
-    )
+    );
 }

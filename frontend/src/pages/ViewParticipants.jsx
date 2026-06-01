@@ -1,60 +1,46 @@
 import axios from "axios"
-import { useNavigate } from "react-router-dom";
-import { useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom"
 import StudentProfile from "../components/StudentProfile"
 import { useEffect, useState } from "react"
 import Spinner from "../components/Spinner"
+import { API_URL, getAuthConfig } from '../api'
 
-export default function ViewParticiapants(){
-
-    const [students,setStudents] = useState([]);
-
+export default function ViewParticipants() {
+    const [students, setStudents] = useState([]);
     const location = useLocation();
-
     const [isLoading, setIsLoading] = useState(true);
+    const class_id = (location.state || {}).id;
 
-    const token = localStorage.getItem('token');
-    const config = {
-        headers: { Authorization: `Bearer ${token}` }
-      };
+    useEffect(() => {
+        const config = getAuthConfig();
+        axios.post(`${API_URL}/tutor/class/students`, { class_id }, config)
+            .then((response) => {
+                setStudents(response.data.students || []);
+            })
+            .catch(console.error)
+            .finally(() => setIsLoading(false));
+    }, [class_id]);
 
-  const class_id = (location.state || {}).id;
+    if (isLoading) return <Spinner />;
 
-    const reqdata = {
-        class_id: class_id
-    }
-
-    useEffect(()=>{
-        axios.post("http://localhost:3000/api/v1/tutor/class/students",reqdata,config)
-        .then((response) => {
-            setStudents(response.data.students);
-            console.log(response.data.students);
-          })
-          .catch((error) => {
-            console.log(error);
-          });
-          setIsLoading(false);
-
-    },[class_id]);
-
-
-
-
-    return isLoading ? <Spinner /> :
-    <div className="bg-[#03040e] text-white h-screen p-10 ">
-        <div className="bg-gray-800 p-6 rounded-lg mx-4 pt-10 ">
-        <div className="font-bold text-xl">
-                    <div className="pb-4">All Participants</div>
-                    <div className="bg-[#d9e6f7] rounded-lg p-4 space-y-4 max-h-[400px] overflow-y-auto">
+    return (
+        <div className="bg-[#03040e] text-white min-h-screen p-6">
+            <div className="bg-gray-800 p-6 rounded-lg mx-4">
+                <div className="text-2xl font-bold mb-6">All Participants</div>
+                {students.length === 0 ? (
+                    <p className="text-gray-400 text-sm">No students enrolled yet.</p>
+                ) : (
+                    <div className="bg-gray-700 rounded-lg p-4 space-y-3 max-h-[500px] overflow-y-auto">
                         {students.map((student, index) => (
-                            <StudentProfile 
-                                key={index} 
-                                name={`${student.first_name} ${student.last_name}`} 
-                                email={student.email} 
+                            <StudentProfile
+                                key={index}
+                                name={`${student.first_name} ${student.last_name}`}
+                                email={student.email}
                             />
-                            ))}
+                        ))}
                     </div>
-                </div>
+                )}
             </div>
         </div>
+    );
 }

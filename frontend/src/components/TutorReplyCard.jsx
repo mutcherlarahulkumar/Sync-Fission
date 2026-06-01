@@ -1,17 +1,8 @@
-
-
-
-export default function TutorReplyCard({reply}) {
-
-    return <div className="bg-pink-800  rounded-lg shadow-sm p-4 mb-7">
-    <div className="flex items-center justify-between mb-2">
-      <h2 className="text-lg font-medium">{reply}</h2>
-      <span className="bg-gray-100  text-gray-500  px-2 py-1 rounded-full text-xs">
-        12 replies
-      </span>
-    </div>
-    <p className="text-gray-500  line-clamp-2">
-      Solved and Verified by {'  Tutor'}
-    </p>
-  </div>
+export default function TutorReplyCard({ reply }) {
+    return (
+        <div className="bg-green-900 border border-green-700 rounded-lg p-4 mb-3">
+            <p className="text-white text-sm">{reply}</p>
+            <p className="text-green-400 text-xs mt-2 font-medium">✓ Tutor's Answer</p>
+        </div>
+    );
 }

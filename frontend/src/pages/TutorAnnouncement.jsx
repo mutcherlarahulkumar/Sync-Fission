@@ -1,99 +1,105 @@
 import Announcement from "../components/Announcement"
 import { useLocation } from "react-router-dom"
-import { useState } from "react"
-import axios from "axios";
-import { ToastContainer, toast } from "react-toastify";
-import { useEffect } from "react";
-import Spinner from "../components/Spinner";
+import { useState, useEffect } from "react"
+import axios from "axios"
+import { ToastContainer, toast } from "react-toastify"
+import Spinner from "../components/Spinner"
+import { API_URL, getAuthConfig } from '../api'
 
-export default function TutorAnnouncement(){
+export default function TutorAnnouncement() {
     const location = useLocation();
-    const class_id = location.state.id;
-    const [announcement, setAnnouncement] = useState('');
+    const class_id = location.state?.id;
 
-    const token = localStorage.getItem('token');
-        const config = {
-          headers: { Authorization: `Bearer ${token}` }
-        };
+    const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
+    const [announcements, setAnnouncements] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
 
-  const [announcements, setAnnouncements] = useState([]);
-
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    axios.get(`http://localhost:3000/api/v1/tutor/class/${class_id}/announcements`,config)
-    .then((response)=>{
-      setAnnouncements(response.data.announcements);
-    }).catch((error)=>{
-      console.error('Cannot extract announcements for class', error);
-    })
-    setIsLoading(false);
-  }, []);
-  // console.log(announcements);
-
-
-    function postannouncement(e){
-      e.preventDefault();
-      const announcementData = {
-        title: announcement,
-        description: 'Your announcement description'
-      };
-      axios.post(`http://localhost:3000/api/v1/tutor/class/${class_id}/addannouncement`,announcementData,config)
-      .then((response)=>{
-        console.log(response.data);
-    toast.success('Announcement added successfully');
-      })
-      .catch((error)=>{
-        console.error('Cannot add new announcement for class', error);
-        toast.error('Cannot add new announcement for class');
-      })
+    function fetchAnnouncements() {
+        const config = getAuthConfig();
+        axios.get(`${API_URL}/tutor/class/${class_id}/announcements`, config)
+            .then((response) => {
+                setAnnouncements(response.data.announcements || []);
+            })
+            .catch(console.error)
+            .finally(() => setIsLoading(false));
     }
+
+    useEffect(() => {
+        fetchAnnouncements();
+    }, []);
+
+    function postAnnouncement(e) {
+        e.preventDefault();
+        if (!title || !description) {
+            toast.error('Title and description are required');
+            return;
+        }
+        const config = getAuthConfig();
+        axios.post(`${API_URL}/tutor/class/${class_id}/addannouncement`, { title, description }, config)
+            .then(() => {
+                toast.success('Announcement posted successfully');
+                setTitle('');
+                setDescription('');
+                fetchAnnouncements();
+            })
+            .catch(() => toast.error('Failed to post announcement'));
+    }
+
+    if (isLoading) return <Spinner />;
+
     return (
-      isLoading ? <Spinner /> :
-        <div className="bg-[#03040e] text-white h-screen p-10 ">
-        <ToastContainer />
-        <div className="bg-gray-800 p-6 rounded-lg mx-4 pt-10 ">
-            <div className="text-2xl font-bold">Classroom ~ Announcement</div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mt-6 ">
-                <div className="font-bold text-lg">
+        <div className="bg-[#03040e] text-white min-h-screen p-6">
+            <ToastContainer />
+            <div className="bg-gray-800 p-6 rounded-lg mx-4">
+                <div className="text-2xl font-bold mb-6">Announcements</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <div>
-              <h2 className="text-xl font-bold mb-4">Create New Announcement</h2>
-              <div className="bg-[#d9e6f7] rounded-lg p-4 text-black">
-                <form className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium" htmlFor="announcement">
-                      Announcement
-                    </label>
-                    <textarea className="w-full rounded-md border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                      id="announcement"
-                      placeholder="Enter your announcement" onChange={(e)=>{setAnnouncement(e.target.value)}} ></textarea>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <button type="submit" className="bg-blue-400 rounded p-1" onClick={postannouncement}>
-                      Post Announcement
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-                </div>
-                <div className="font-bold text-xl">
-                    <div>All Announcements</div>
-                    <div className="bg-[#d9e6f7] rounded-lg p-4 space-y-4 max-h-[400px] overflow-y-auto">
-                     {[...announcements].reverse().map((announcementd) => {
-                      const { id, title } = announcementd;
-                      return (
-                        <Announcement
-                          key={id}
-                          title={title}
-                          date={'date'}
-                        />
-                      );
-                    })} 
+                        <h2 className="text-lg font-bold mb-4">Post New Announcement</h2>
+                        <div className="bg-gray-700 rounded-lg p-4">
+                            <form className="space-y-4" onSubmit={postAnnouncement}>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Title</label>
+                                    <input
+                                        type="text"
+                                        className="w-full bg-gray-600 border border-gray-500 rounded-md px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                                        placeholder="Announcement title"
+                                        value={title}
+                                        onChange={(e) => setTitle(e.target.value)}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1">Description</label>
+                                    <textarea
+                                        className="w-full bg-gray-600 border border-gray-500 rounded-md px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500 h-24 resize-none"
+                                        placeholder="Announcement details"
+                                        value={description}
+                                        onChange={(e) => setDescription(e.target.value)}
+                                    />
+                                </div>
+                                <button
+                                    type="submit"
+                                    className="bg-blue-600 hover:bg-blue-500 text-white rounded-lg px-4 py-2 text-sm font-medium transition-colors"
+                                >
+                                    Post Announcement
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-bold mb-4">All Announcements</h2>
+                        <div className="bg-gray-700 rounded-lg p-4 space-y-3 max-h-[400px] overflow-y-auto">
+                            {announcements.length === 0 ? (
+                                <p className="text-gray-400 text-sm">No announcements yet.</p>
+                            ) : (
+                                [...announcements].reverse().map((a) => (
+                                    <Announcement key={a.id} title={a.title} description={a.description} />
+                                ))
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-    )
+    );
 }

@@ -1,12 +1,16 @@
-export default function Assignement({title,description,date,link}){
+export default function Assignment({ title, description, date, link }) {
     return (
-        <div className="text-black p-4 rounded-lg bg-[#d9e6f7]">
-            <div className="font-bold ">
-                <div className="text-xl pb-1">Title : {title}</div>
-                <div className="text-sm">Description : {description}</div>
-                <div>Link : <span className="text-blue-400">{link}</span></div>
-                <div >Due Date : <span className="text-red-400">{date}</span></div>
-            </div>
+        <div className="p-4 rounded-lg bg-gray-700 border border-gray-600">
+            <div className="font-semibold text-white text-base mb-1">{title}</div>
+            <div className="text-gray-300 text-sm mb-2">{description}</div>
+            {link && (
+                <div className="text-sm mb-1">
+                    <a href={link} target="_blank" rel="noreferrer" className="text-blue-400 hover:underline">
+                        View Resource ↗
+                    </a>
+                </div>
+            )}
+            <div className="text-xs text-red-400 font-medium">Due: {date}</div>
         </div>
-    )
+    );
 }

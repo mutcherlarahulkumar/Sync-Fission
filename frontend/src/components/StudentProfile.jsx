@@ -1,11 +1,14 @@
-export default function StudentProfile({name}){
-    return <div className="flex justify-between">
-    <div className="flex space-x-4">
-        <div className="w-10 h-10 bg-gray-400 rounded-full flex justify-center items-center text-pink-700">{name[0]}</div>
-        <div className="flex flex-col">
-            <div className="font-bold text-black">{name}</div>
-            <div className="text-sm text-gray-600">Student</div>
+export default function StudentProfile({ name, email }) {
+    const initials = name ? name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) : '?';
+    return (
+        <div className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-purple-700 rounded-full flex justify-center items-center text-white font-semibold text-sm shrink-0">
+                {initials}
+            </div>
+            <div>
+                <div className="font-medium text-black text-sm">{name}</div>
+                {email && <div className="text-xs text-gray-500">{email}</div>}
+            </div>
         </div>
-    </div>
-</div>
+    );
 }
