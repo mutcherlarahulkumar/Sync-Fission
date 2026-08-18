@@ -62,24 +62,50 @@ jobs:
       # Three repository secrets are needed: VERCEL_TOKEN, VERCEL_ORG_ID and
       # VERCEL_PROJECT_ID. The last two are in .vercel/project.json after you
       # run `vercel link` locally once.
-      - name: Pull Vercel environment
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+      #
+      # Until they exist, the deploy is skipped with a warning rather than
+      # failing the run. A missing deploy credential is a repo-configuration
+      # gap, not a broken commit, and a permanently red CI badge trains you to
+      # stop reading it. The secrets context isn't available in a job-level
+      # `if:`, so the check has to be a step.
+      - name: Check for Vercel credentials
+        id: creds
         env:
+          TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          if [ -n "$TOKEN" ] && [ -n "$ORG_ID" ] && [ -n "$PROJECT_ID" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Skipping deploy — set VERCEL_TOKEN, VERCEL_ORG_ID and VERCEL_PROJECT_ID to enable it."
+          fi
+
+      - name: Pull Vercel environment
+        if: steps.creds.outputs.ready == 'true'
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Build
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        if: steps.creds.outputs.ready == 'true'
+        run: vercel build --prod --token="$VERCEL_TOKEN"
         env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Deploy
         id: deploy
+        if: steps.creds.outputs.ready == 'true'
         run: |
-          url=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          url=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")
           echo "url=$url" >> "$GITHUB_OUTPUT"
           echo "Deployed to $url"
         env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
