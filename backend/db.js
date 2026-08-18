@@ -12,7 +12,7 @@ import { config, isProd } from "./config.js";
 //
 //   2. getClient() used to run the whole CREATE TABLE block on *every call*,
 //      so each API request paid for twelve DDL round-trips before doing any
-//      work. Migration now runs once per process and is memoised.
+//      work. Migration is out of the request path entirely now — see migrate().
 //
 //   3. The connection was opened with a top-level await, so a database that
 //      was briefly unreachable at boot took the entire process down at import
@@ -49,13 +49,20 @@ pool.on('error', (err) => {
 let migration = null;
 
 /**
- * Runs the schema once per process. Concurrent callers share the same promise,
- * so a burst of requests on a cold start doesn't run the DDL several times.
+ * Applies the schema. Concurrent callers share one promise so it can never run
+ * twice in a process.
+ *
+ * This is deliberately NOT called from getClient(). Two modules take a handle at
+ * import time, so migrating inside getClient() meant DDL ran on module load —
+ * and on serverless, where every cold start re-imports, that is several
+ * instances racing to run CREATE TABLE at once. Schema changes are a deliberate
+ * step now: `npm start` runs it before listening, and `npm run migrate` applies
+ * it to a deployed database.
  */
 function migrate() {
     if (!migration) {
         migration = createTables().catch((err) => {
-            // Let the next request retry rather than caching the failure forever.
+            // Don't cache the failure forever; let the next attempt retry.
             migration = null;
             throw err;
         });
@@ -65,10 +72,12 @@ function migrate() {
 
 /**
  * The app's handle to Postgres. Returns the pool, which exposes the same
- * .query() interface the old single client did — no call site had to change.
+ * .query() interface the old single client did — so no call site had to change.
+ *
+ * Cheap and non-blocking: a Pool opens no sockets until the first query, which
+ * is what makes a module-level `await getClient()` harmless.
  */
 async function getClient() {
-    await migrate();
     return pool;
 }
 
