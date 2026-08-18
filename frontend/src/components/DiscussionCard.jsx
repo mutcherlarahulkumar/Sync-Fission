@@ -1,4 +1,3 @@
-import React from 'react';
 
 export default function DiscussionCard({ discussion }) {
     const studentName = discussion.first_name

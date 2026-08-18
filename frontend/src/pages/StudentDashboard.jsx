@@ -59,7 +59,7 @@ export default function StudentDashboard() {
                 <div className="text-xl pb-5 font-semibold">Your Classes</div>
                 {classes.length === 0 ? (
                     <div className="text-gray-400 text-center py-16">
-                        No classes joined yet. Click <strong>"+ Join Class"</strong> and enter a class code.
+                        No classes joined yet. Click <strong>&quot;+ Join Class&quot;</strong> and enter a class code.
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

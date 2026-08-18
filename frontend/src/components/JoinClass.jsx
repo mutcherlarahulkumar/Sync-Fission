@@ -13,7 +13,7 @@ export default function JoinClass({ onJoined }) {
         }
         const config = getAuthConfig();
         axios.post(`${API_URL}/student/enroll`, { classcode }, config)
-            .then((res) => {
+            .then(() => {
                 toast.success('Class joined successfully!');
                 setClasscode('');
                 if (onJoined) onJoined();

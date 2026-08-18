@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import axios from 'axios';
 import DoubtCardTutor from '../components/DoubtCardTutor';
 import { useLocation } from 'react-router-dom';

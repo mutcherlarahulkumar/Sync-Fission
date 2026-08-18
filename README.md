@@ -80,19 +80,63 @@ class.
 docker compose up -d          # Postgres, Redis, ChromaDB
 
 cd backend
-cp .env.example .env          # fill in DATABASE_URL, JWT_SECRET, GEMINI_API_KEY
-npm ci && npm run dev         # tables are created on first connection
+cp .env.example .env          # fill in DATABASE_URL and JWT_SECRET
+npm ci
+npm run migrate               # apply the schema (once, and after schema changes)
+npm run dev
 
 cd ../frontend
 cp .env.example .env
 npm ci && npm run dev
 ```
 
-Only `DATABASE_URL` and `JWT_SECRET` are truly required. `GEMINI_API_KEY` turns
-the assistant on; `REDIS_URL` and `CHROMA_URL` turn on rate limiting and
+Only `DATABASE_URL` and `JWT_SECRET` are truly required, and the process refuses
+to start without them rather than failing on the first request. `GEMINI_API_KEY`
+turns the assistant on; `REDIS_URL` and `CHROMA_URL` turn on rate limiting and
 retrieval respectively.
 
-`GET /health` reports which of the optional pieces came up.
+`GET /health` reports which of the optional pieces came up — and actually queries
+Postgres, so it returns 503 when the database is unreachable instead of a
+cheerful `ok`.
+
+## Deploying
+
+The frontend and the backend are two separate Vercel projects pointed at the
+same repository, with **Root Directory** set to `frontend` and `backend`. Each
+already has its own `vercel.json`.
+
+**Backend project** — root directory `backend`. `api/index.js` exports the
+Express app as the serverless handler and `vercel.json` rewrites every path to
+it, so Express keeps doing its own routing.
+
+Environment variables to set in the Vercel dashboard:
+
+| Variable | Notes |
+| --- | --- |
+| `DATABASE_URL` | Managed Postgres; usually needs `?sslmode=require` |
+| `JWT_SECRET` | 32+ characters, or the app refuses to boot |
+| `ALLOWED_ORIGINS` | The frontend's URL. Required in production — no wildcard |
+| `NODE_ENV` | `production` |
+| `GEMINI_API_KEY` | Optional; without it the assistant returns 503 |
+| `REDIS_URL` | Optional; without it nothing is rate limited |
+| `CHROMA_URL` | Optional; without it there is no retrieval |
+
+**Frontend project** — root directory `frontend`, one variable:
+`VITE_API_URL=https://<your-backend>.vercel.app/api/v1`. Its `vercel.json`
+rewrites all paths to `index.html`, without which every route except `/` 404s on
+a refresh.
+
+**Run the migration once** against the production database before the first
+deploy — serverless instances deliberately never run DDL themselves:
+
+```bash
+DATABASE_URL='postgres://...' npm run migrate
+```
+
+Redis and ChromaDB have to be reachable from Vercel's network, so a local
+`docker compose` instance won't do: use a hosted Redis (Upstash and friends) and
+either Chroma Cloud or Chroma on a small VM. Leaving both unset is a valid
+production configuration — you lose rate limiting and retrieval, not the app.
 
 ## A note on API keys
 
@@ -130,13 +174,29 @@ Vercel deployment needs three repository secrets: `VERCEL_TOKEN`, `VERCEL_ORG_ID
 ## Tests
 
 ```bash
-cd backend && npm test
+cd backend  && npm test
+cd frontend && npm run lint
 ```
 
-They cover the chunking logic that retrieval quality depends on (size ceiling,
-real overlap between neighbours, empty input) and the rate-limit key derivation —
-including the subtle one: tutor #7 and student #7 are different people, since the
-two tables have independent id sequences.
+The backend tests need no database, no Redis and no API key — they boot the real
+app on an ephemeral port and check the things that are expensive to get wrong:
+
+- unknown routes return JSON rather than Express's HTML stack trace
+- the security headers are actually on the response
+- malformed JSON is a 400, not a 500
+- the assistant refuses an anonymous caller before reaching the model or the database
+- `/health` reports a dead database instead of claiming to be fine
+
+Plus the chunking logic retrieval quality depends on (size ceiling, real overlap
+between neighbours, empty input) and the rate-limit key derivation — including
+the subtle one: tutor #7 and student #7 are different people, since the two
+tables have independent id sequences.
+
+`npm run lint` had never actually run: the script was in `package.json` from day
+one but there was no ESLint config for it to find. There is one now, the 18
+errors it surfaced are fixed, and the 7 remaining `exhaustive-deps` warnings are
+pinned via `--max-warnings 7` — a ratchet that blocks new ones without forcing a
+risky refactor of hook dependencies today.
 
 ## Known rough edges
 
@@ -145,23 +205,44 @@ two tables have independent id sequences.
   in the logs.
 - **Session booking is one-directional** — the row lands as `requested` and there
   is no tutor-facing confirm/decline screen yet.
-- **`db.js` holds a single `pg.Client`**, not a pool. Fine at this size, wrong
-  under real concurrency.
 - **Passwords were once stored in plain text.** They're bcrypt now, and sign-in
   transparently re-hashes any legacy row on the next successful login. That
   upgrade branch in `routes/auth/signin.js` can be deleted once the logs go quiet.
+- **The schema is `CREATE TABLE IF NOT EXISTS`, not versioned migrations.** It
+  can add things; it can't rename or drop one safely. A real migration tool is
+  the upgrade the first time a column has to change shape.
+- **Two landing-page images are ~1.1 MB each** (`both.png`, `tutor.png`), which
+  dwarfs the 105 KB gzipped JS bundle. Converting them to WebP is the single
+  biggest load-time win available and needs no code change.
+- **Seven `react-hooks/exhaustive-deps` warnings remain.** They're all
+  fetch-on-mount effects that behave correctly; fixing them properly means
+  `useCallback` and a careful re-read of each page, not a blind dependency add.
+- **No refresh tokens.** A JWT lasts until it expires and then you sign in again —
+  the frontend now clears the session and redirects rather than leaving you on a
+  dashboard where every panel silently fails.
 
 ## Layout
 
 ```
 backend/
-  index.js                the gateway: CORS, rate limits, /health
-  db.js                   connection + schema creation
+  app.js                  the Express app: CORS, security headers, rate limits,
+                          /health, 404 and error handlers. No listen() call, so
+                          one app serves both deploy targets.
+  index.js                long-running server entrypoint (migrate, listen,
+                          graceful shutdown)
+  api/index.js            Vercel serverless entrypoint
+  config.js               environment validation — the process won't boot misconfigured
+  db.js                   the connection pool and the schema
+  scripts/migrate.js      apply the schema and exit
   routes/                 auth, tutor, student, chat
   services/agent.js       tool declarations, the tool loop, conversation memory
   services/rag.js         chunking, indexing, retrieval
   services/embeddings.js  Gemini text-embedding-004
   services/redis.js       the shared, optional Redis connection
   middleware/ratelimit.js the Redis fixed-window limiter
-frontend/                 React + Vite + Tailwind
+  test/                   app smoke tests and unit tests, no services required
+frontend/
+  src/api.js              API base URL, auth storage, the 401 interceptor
+  src/components/RequireAuth.jsx   the route guard
+  vercel.json             SPA rewrite plus cache and security headers
 ```

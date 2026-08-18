@@ -72,7 +72,7 @@ export default function DoubtDiscussionPage() {
 
                 {replies.length > 0 && (
                     <div className="mb-6">
-                        <h2 className="text-lg font-semibold mb-3">Tutor's Answer</h2>
+                        <h2 className="text-lg font-semibold mb-3">Tutor&apos;s Answer</h2>
                         {replies.map((reply) => (
                             <TutorReplyCard key={reply.id} reply={reply.reply} />
                         ))}

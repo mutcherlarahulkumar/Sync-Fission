@@ -37,9 +37,15 @@ jobs:
         run: npm ci
         working-directory: frontend
 
+      - name: Lint frontend
+        run: npm run lint
+        working-directory: frontend
+
       - name: Build frontend
         run: npm run build
         working-directory: frontend
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'http://localhost:3000/api/v1' }}
 
   deploy:
     name: Deploy to Vercel

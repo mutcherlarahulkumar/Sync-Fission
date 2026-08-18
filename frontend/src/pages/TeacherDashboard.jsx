@@ -62,7 +62,7 @@ export default function TeacherDashboard() {
                 <div className="text-xl pb-5 font-semibold">Your Classes</div>
                 {classes.length === 0 ? (
                     <div className="text-gray-400 text-center py-16">
-                        No classes created yet. Click <strong>"+ Create Class"</strong> to get started.
+                        No classes created yet. Click <strong>&quot;+ Create Class&quot;</strong> to get started.
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

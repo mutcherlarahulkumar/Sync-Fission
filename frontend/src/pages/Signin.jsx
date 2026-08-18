@@ -84,7 +84,7 @@ export default function Signin() {
                             </button>
                         </form>
                         <div className="pt-4 text-gray-400">
-                            Don't have an account?{' '}
+                            Don&apos;t have an account?{' '}
                             <button
                                 className="text-white hover:underline"
                                 onClick={() => navigate('/signup', { state: { role: user.toLowerCase() } })}

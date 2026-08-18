@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import teacherimage from '../assets/tutor.png';
 import { API_URL, getAuthConfig, isSignedIn } from '../api';
@@ -80,7 +80,7 @@ function AIAssistant() {
                     <div className="flex-1 overflow-y-auto p-4 bg-gray-50 space-y-3">
                         {messages.length === 0 && (
                             <div className="text-center text-gray-400 text-sm pt-8">
-                                Hi! I'm Devika. Ask me anything about your studies!
+                                Hi! I&apos;m Devika. Ask me anything about your studies!
                             </div>
                         )}
                         {messages.map((msg, index) => (

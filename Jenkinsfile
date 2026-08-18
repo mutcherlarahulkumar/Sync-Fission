@@ -41,6 +41,12 @@ pipeline {
       }
     }
 
+    stage('Lint frontend') {
+      steps {
+        dir('frontend') { sh 'npm run lint' }
+      }
+    }
+
     stage('Build frontend') {
       steps {
         dir('frontend') { sh 'npm run build' }
