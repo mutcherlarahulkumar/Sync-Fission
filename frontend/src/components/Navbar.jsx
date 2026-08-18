@@ -1,14 +1,15 @@
 import { useNavigate, useLocation } from 'react-router-dom';
+import { getToken, clearAuth } from '../api';
 
 export default function Navbar() {
     const navigate = useNavigate();
     const location = useLocation();
-    const token = localStorage.getItem('token');
+    const token = getToken();
     const isHome = location.pathname === '/';
     const isAuth = location.pathname === '/signin' || location.pathname === '/signup';
 
     function logout() {
-        localStorage.removeItem('token');
+        clearAuth();
         navigate('/');
     }
 

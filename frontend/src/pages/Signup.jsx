@@ -6,7 +6,7 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axios from 'axios';
 import Spinner from '../components/Spinner';
-import { API_URL } from '../api';
+import { API_URL, setAuth } from '../api';
 
 export default function Signup() {
     const [isLoading, setIsLoading] = useState(false);
@@ -45,9 +45,9 @@ export default function Signup() {
                 email,
                 password,
             });
-            localStorage.setItem("token", response.data.token);
+            setAuth(response.data.token, response.data.role || user.toLowerCase());
             toast.success(response.data.message);
-            navigate(`/${user.toLowerCase()}-dashboard`);
+            navigate(`/${user.toLowerCase()}-dashboard`, { replace: true });
         } catch (error) {
             toast.error(error.response?.data?.error || 'An error occurred');
         } finally {

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import teacherimage from '../assets/tutor.png';
-import { API_URL, getAuthConfig } from '../api';
+import { API_URL, getAuthConfig, isSignedIn } from '../api';
 
 function AIAssistant() {
     const [isChatOpen, setChatOpen] = useState(false);
@@ -51,6 +51,10 @@ function AIAssistant() {
             sendMessage();
         }
     }
+
+    // Devika needs to know whose classes to look at, so she is only offered
+    // to signed-in users rather than showing a bubble that can only say no.
+    if (!isSignedIn()) return null;
 
     return (
         <div>

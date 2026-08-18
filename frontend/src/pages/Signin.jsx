@@ -6,7 +6,7 @@ import Spinner from '../components/Spinner';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { API_URL } from '../api';
+import { API_URL, setAuth } from '../api';
 
 export default function Signin() {
     const [isLoading, setIsLoading] = useState(false);
@@ -33,9 +33,12 @@ export default function Signin() {
         setIsLoading(true);
         try {
             const response = await axios.post(`${API_URL}/signin/${user.toLowerCase()}`, { email, password });
-            localStorage.setItem("token", response.data.token);
+            // The role is stored alongside the token so the route guard can
+            // keep a student out of the tutor views without a round trip.
+            setAuth(response.data.token, response.data.role || user.toLowerCase());
             toast.success(response.data.message);
-            navigate(`/${user.toLowerCase()}-dashboard`);
+            // Send them back where they were headed before the guard bounced them.
+            navigate(location.state?.from || `/${user.toLowerCase()}-dashboard`, { replace: true });
         } catch (error) {
             toast.error(error.response?.data?.error || 'An error occurred');
         } finally {
