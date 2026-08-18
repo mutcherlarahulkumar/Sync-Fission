@@ -1,6 +1,16 @@
 import express from 'express';
 import { authMiddleware } from './auth/authmiddleware.js';
 import { ask, clearHistory } from '../services/agent.js';
+import { rateLimit, byUserOrIp } from '../middleware/ratelimit.js';
+
+// Each assistant message can fan out into several LLM calls, so this limit is
+// tighter than the global one and keyed per user (it runs after auth).
+const chatLimit = rateLimit({
+    name: 'chat',
+    limit: 20,
+    windowSeconds: 60,
+    identify: byUserOrIp,
+});
 
 export const app = express.Router();
 
@@ -8,7 +18,7 @@ export const app = express.Router();
 // contact details, and can book sessions in their name. None of that can be
 // exposed to an anonymous request.
 
-app.post('/send', authMiddleware, async (req, res) => {
+app.post('/send', authMiddleware, chatLimit, async (req, res) => {
     const userInput = req.body?.userInput;
     if (typeof userInput !== 'string' || !userInput.trim()) {
         return res.status(400).json({ error: 'userInput is required' });

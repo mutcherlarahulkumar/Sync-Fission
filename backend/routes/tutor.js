@@ -3,6 +3,7 @@ import { authMiddleware } from './auth/authmiddleware.js';
 import { getClient } from '../db.js';
 import zod from 'zod';
 import jwt from 'jsonwebtoken';
+import { indexResource } from '../services/rag.js';
 
 export const router = express.Router();
 const client = await getClient();
@@ -147,13 +148,30 @@ router.post("/class/:class_id/addannouncement", authMiddleware, async (req, res)
 router.post("/class/:class_id/addresource", authMiddleware, async (req, res) => {
     try {
         const { class_id } = req.params;
-        const { type, title, link } = req.body;
+        // `content` is optional notes pasted alongside the link. It is what
+        // makes the resource searchable — a bare URL embeds to nothing useful.
+        const { type, title, link, content } = req.body;
         const newResource = await client.query(`
-            INSERT INTO resource(type, title, link, class_id)
-            VALUES($1, $2, $3, $4) RETURNING *;
-        `, [type, title, link, class_id]);
-        res.json({ newResource: newResource.rows[0], message: "Resource added successfully" });
+            INSERT INTO resource(type, title, link, class_id, content)
+            VALUES($1, $2, $3, $4, $5) RETURNING *;
+        `, [type, title, link, class_id, content || null]);
+
+        const resource = newResource.rows[0];
+
+        // Feed the retrieval index in the background. A ChromaDB hiccup must not
+        // stop a tutor uploading material, so the tutor sees success either way
+        // and the failure lands in the logs.
+        indexResource({
+            resourceId: resource.id,
+            classId: class_id,
+            title,
+            type,
+            content,
+        }).catch((err) => console.warn(`Could not index resource ${resource.id}:`, err.message));
+
+        res.json({ newResource: resource, message: "Resource added successfully" });
     } catch (err) {
+        console.error(err);
         res.status(500).json({ message: "Cannot add resource" });
     }
 });

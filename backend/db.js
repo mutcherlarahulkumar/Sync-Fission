@@ -98,6 +98,21 @@ async function createTables() {
             student_id INTEGER REFERENCES student(id) ON DELETE CASCADE
         );
     `);
+    await client.query(`
+        CREATE TABLE IF NOT EXISTS session(
+            id SERIAL PRIMARY KEY,
+            class_id INTEGER REFERENCES class(id) ON DELETE CASCADE,
+            tutor_id INTEGER REFERENCES tutor(id) ON DELETE CASCADE,
+            student_id INTEGER REFERENCES student(id) ON DELETE CASCADE,
+            topic TEXT NOT NULL,
+            scheduled_at TIMESTAMP NOT NULL,
+            status TEXT NOT NULL DEFAULT 'requested',
+            created_at TIMESTAMP NOT NULL DEFAULT now()
+        );
+    `);
+    // Optional notes pasted alongside a link. This is what actually gets
+    // embedded into ChromaDB — a bare URL retrieves nothing useful.
+    await client.query(`ALTER TABLE resource ADD COLUMN IF NOT EXISTS content TEXT;`);
 }
 
 export { getClient };
