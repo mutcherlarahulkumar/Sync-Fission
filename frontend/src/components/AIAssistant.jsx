@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import teacherimage from '../assets/tutor.png';
-import { API_URL } from '../api';
+import { API_URL, getAuthConfig } from '../api';
 
 function AIAssistant() {
     const [isChatOpen, setChatOpen] = useState(false);
@@ -23,10 +23,23 @@ function AIAssistant() {
         setMessages(prev => [...prev, { text: userMessage, isUser: true }]);
         setIsLoading(true);
         try {
-            const response = await axios.post(`${API_URL}/chat/send`, { userInput: userMessage });
+            // The assistant reads the caller's classes and can book sessions,
+            // so the request is authenticated like any other.
+            const response = await axios.post(
+                `${API_URL}/chat/send`,
+                { userInput: userMessage },
+                getAuthConfig(),
+            );
             setMessages(prev => [...prev, { text: response.data.response, isUser: false }]);
         } catch (error) {
-            setMessages(prev => [...prev, { text: 'Sorry, I could not process your request. Please try again.', isUser: false }]);
+            const status = error.response?.status;
+            const text =
+                status === 401 || status === 403
+                    ? 'Please sign in first — I need to know whose classes to look at.'
+                    : status === 429
+                        ? 'That was a lot of questions at once. Give me a minute and try again.'
+                        : 'Sorry, I could not process your request. Please try again.';
+            setMessages(prev => [...prev, { text, isUser: false }]);
         } finally {
             setIsLoading(false);
         }

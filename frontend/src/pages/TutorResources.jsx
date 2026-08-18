@@ -13,6 +13,9 @@ export default function TutorResources() {
     const [title, setTitle] = useState('');
     const [link, setLink] = useState('');
     const [type, setType] = useState('');
+    // Pasted notes/summary. This is the text the assistant actually searches —
+    // a bare link has nothing to embed.
+    const [content, setContent] = useState('');
     const [resources, setResources] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -37,12 +40,13 @@ export default function TutorResources() {
             return;
         }
         const config = getAuthConfig();
-        axios.post(`${API_URL}/tutor/class/${class_id}/addresource`, { title, link, type }, config)
+        axios.post(`${API_URL}/tutor/class/${class_id}/addresource`, { title, link, type, content }, config)
             .then(() => {
                 toast.success('Resource added successfully');
                 setTitle('');
                 setLink('');
                 setType('');
+                setContent('');
                 fetchResources();
             })
             .catch(() => toast.error('Failed to add resource'));
@@ -90,6 +94,21 @@ export default function TutorResources() {
                                             onChange={(e) => setType(e.target.value)}
                                             placeholder="e.g. PDF, Video, Article"
                                         />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">
+                                            Notes <span className="text-gray-400 font-normal">(optional)</span>
+                                        </label>
+                                        <textarea
+                                            rows={5}
+                                            className="w-full bg-gray-600 border border-gray-500 rounded-md px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+                                            value={content}
+                                            onChange={(e) => setContent(e.target.value)}
+                                            placeholder="Paste a summary or the key points. Anything you put here becomes searchable by the AI assistant."
+                                        />
+                                        <p className="text-xs text-gray-400 mt-1">
+                                            Students asking Devika about this topic will get answers grounded in these notes.
+                                        </p>
                                     </div>
                                     <button
                                         type="submit"

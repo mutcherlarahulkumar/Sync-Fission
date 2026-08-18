@@ -1,0 +1,26 @@
+# Local dependencies for the backend. The API itself runs with `npm run dev`
+# so you keep hot reload; this just provides Postgres, Redis and ChromaDB.
+name: sync-fission
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: syncfission
+      POSTGRES_PASSWORD: syncfission
+      POSTGRES_DB: syncfission
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+
+  chroma:
+    image: chromadb/chroma:latest
+    ports: ["8000:8000"]
+    volumes: [chromadata:/data]
+
+volumes:
+  pgdata:
+  chromadata:
